@@ -76,11 +76,22 @@ INDEX_HTML = """<!doctype html>
       border: 1px solid #c9c2b2;
       border-radius: 8px;
       background: #fffdf8;
+      transform: translateZ(0);
     }
     .visual-panel svg {
       display: block;
       width: 100%;
       height: auto;
+    }
+    .preview-arrow,
+    .preview-arrow-head,
+    .preview-line,
+    .preview-highlight {
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .preview-line {
+      stroke-dasharray: 18 9;
     }
     form {
       margin-top: 24px;
@@ -141,6 +152,15 @@ INDEX_HTML = """<!doctype html>
       font: inherit;
       font-weight: 700;
       cursor: pointer;
+      transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+    button:hover {
+      background: #1f4f3e;
+      box-shadow: 0 8px 18px rgba(36, 91, 71, 0.18);
+      transform: translateY(-1px);
+    }
+    button:active {
+      transform: translateY(0);
     }
     button:disabled {
       opacity: 0.55;
@@ -181,6 +201,12 @@ INDEX_HTML = """<!doctype html>
       color: #193f33;
       background: #fafaf8;
       text-decoration: none;
+      transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+    }
+    .links a:hover {
+      border-color: #b7c9c0;
+      background: #f3f8f5;
+      transform: translateY(-1px);
     }
     .links strong {
       display: block;
@@ -203,6 +229,81 @@ INDEX_HTML = """<!doctype html>
       }
       h1 { font-size: 25px; }
     }
+    @media (prefers-reduced-motion: no-preference) {
+      .intro > div {
+        animation: riseIn 520ms ease both;
+      }
+      .visual-panel {
+        animation: riseIn 620ms ease 80ms both, gentleFloat 5.5s ease-in-out 900ms infinite;
+      }
+      form {
+        animation: riseIn 520ms ease 140ms both;
+      }
+      .preview-arrow,
+      .preview-arrow-head {
+        animation: arrowPulse 1.9s ease-in-out infinite;
+      }
+      .preview-line {
+        animation: lineFlow 3.2s linear infinite;
+      }
+      .preview-highlight {
+        animation: softBlink 2.4s ease-in-out infinite;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes gentleFloat {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+    @keyframes arrowPulse {
+      0%, 100% {
+        opacity: 0.7;
+        transform: translateX(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateX(7px);
+      }
+    }
+    @keyframes lineFlow {
+      from {
+        stroke-dashoffset: 0;
+      }
+      to {
+        stroke-dashoffset: -54;
+      }
+    }
+    @keyframes softBlink {
+      0%, 100% {
+        opacity: 0.55;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body>
@@ -221,16 +322,16 @@ INDEX_HTML = """<!doctype html>
           <rect x="324" y="36" width="196" height="288" rx="8" fill="#f7fbff" stroke="#b9c7d9" stroke-width="3"/>
           <text x="80" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="34" writing-mode="tb">阪急電車</text>
           <text x="148" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="26" writing-mode="tb">宝塚駅</text>
-          <path d="M260 176h38" stroke="#245b47" stroke-width="6" stroke-linecap="round"/>
-          <path d="M294 160l24 16-24 16" fill="none" stroke="#245b47" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="preview-arrow" d="M260 176h38" stroke="#245b47" stroke-width="6" stroke-linecap="round"/>
+          <path class="preview-arrow-head" d="M294 160l24 16-24 16" fill="none" stroke="#245b47" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
           <text x="358" y="98" fill="#7d6a43" font-family="Georgia, serif" font-size="15">はんきゅう</text>
           <text x="360" y="126" fill="#202124" font-family="Georgia, serif" font-size="36">阪急</text>
           <text x="430" y="98" fill="#7d6a43" font-family="Georgia, serif" font-size="15">でんしゃ</text>
           <text x="432" y="126" fill="#202124" font-family="Georgia, serif" font-size="36">電車</text>
-          <line x1="356" y1="164" x2="488" y2="164" stroke="#cfc8b9" stroke-width="3"/>
-          <line x1="356" y1="198" x2="486" y2="198" stroke="#cfc8b9" stroke-width="3"/>
-          <line x1="356" y1="232" x2="472" y2="232" stroke="#cfc8b9" stroke-width="3"/>
-          <rect x="356" y="262" width="96" height="20" rx="4" fill="#d6e5de"/>
+          <line class="preview-line" x1="356" y1="164" x2="488" y2="164" stroke="#cfc8b9" stroke-width="3"/>
+          <line class="preview-line" x1="356" y1="198" x2="486" y2="198" stroke="#cfc8b9" stroke-width="3"/>
+          <line class="preview-line" x1="356" y1="232" x2="472" y2="232" stroke="#cfc8b9" stroke-width="3"/>
+          <rect class="preview-highlight" x="356" y="262" width="96" height="20" rx="4" fill="#d6e5de"/>
         </svg>
       </figure>
     </section>

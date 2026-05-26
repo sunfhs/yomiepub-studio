@@ -57,14 +57,24 @@ Implemented now:
 
 Planned:
 
-- Local Web UI upload/preview/download flow.
 - Bilingual paragraph layout.
 - Optional translation backend, only when configured by the user.
 - JLPT/difficulty-aware furigana filtering.
 
 ## Quick Start
 
+For someone who downloads this project from GitHub, the normal flow is:
+
+1. Clone the repository or download and unzip it.
+2. Install the local Python app.
+3. Start the local web page.
+4. Upload a legally obtained Japanese EPUB/TXT/HTML.
+5. Download the converted `BookTitleYomi.epub`.
+6. Transfer it to the e-ink reader and open it in KOReader.
+
 ```bash
+git clone https://github.com/YOUR_NAME/jp-ebook-furigana-bilingual-pipeline.git
+cd jp-ebook-furigana-bilingual-pipeline
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -89,6 +99,7 @@ http://127.0.0.1:8765
 ```
 
 The local page lets you upload a Japanese EPUB/TXT/HTML file, choose horizontal layout and furigana options, then download the KOReader-friendly EPUB.
+The web UI runs only on your own computer at `127.0.0.1`; files are not uploaded to a cloud service.
 
 Convert a TXT file:
 
