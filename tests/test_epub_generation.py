@@ -3,7 +3,7 @@ from __future__ import annotations
 import zipfile
 
 from jp_ebook_pipeline.converter import convert_file
-from jp_ebook_pipeline.epub import _force_ltr_spine
+from jp_ebook_pipeline.epub import _force_ltr_spine, _switch_to_horizontal_stylesheets
 from jp_ebook_pipeline.html_tools import normalize_html
 from jp_ebook_pipeline.models import ConvertOptions
 
@@ -22,6 +22,7 @@ def test_txt_conversion_writes_koreader_friendly_epub(tmp_path) -> None:
         assert zf.read("mimetype") == b"application/epub+zip"
         chapter = zf.read("OEBPS/chapter_001.xhtml").decode("utf-8")
         assert "writing-mode: horizontal-tb" in chapter
+        assert "-epub-writing-mode: horizontal-tb" in chapter
 
 
 def test_epub_html_output_does_not_keep_fake_xml_declaration() -> None:
@@ -53,3 +54,18 @@ def test_force_ltr_spine_preserves_opf_namespace_text() -> None:
     assert b"ns0:" not in result
     assert b"<package xmlns=" in result
     assert b'page-progression-direction="ltr"' in result
+
+
+def test_switch_to_horizontal_stylesheets_uses_existing_h_css() -> None:
+    html = """<html><head>
+<link class="vertical" href="a_1_v_2.css" rel="stylesheet" type="text/css"/>
+</head><body></body></html>"""
+    files = {
+        "OEBPS/a_1_v_2.css": b"",
+        "OEBPS/a_1_h_2.css": b"",
+    }
+
+    result = _switch_to_horizontal_stylesheets(html, "OEBPS/a_1_2.xhtml", files)
+
+    assert 'href="a_1_h_2.css"' in result
+    assert 'class="horizontal"' in result

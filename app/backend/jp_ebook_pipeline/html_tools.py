@@ -28,6 +28,7 @@ def koreader_css(options: ConvertOptions) -> str:
 html, body {{
   writing-mode: {writing_mode} !important;
   -webkit-writing-mode: {writing_mode} !important;
+  -epub-writing-mode: {writing_mode} !important;
   font-size: {options.font_size};
   line-height: {options.line_height};
 }}

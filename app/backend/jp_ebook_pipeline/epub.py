@@ -9,6 +9,8 @@ from html import escape
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from bs4 import BeautifulSoup, Tag
+
 from jp_ebook_pipeline.html_tools import normalize_html, text_to_html
 from jp_ebook_pipeline.models import ConvertOptions
 
@@ -96,6 +98,8 @@ def convert_epub(input_path: Path, output_path: Path, options: ConvertOptions) -
     for name in html_paths:
         if name in files:
             html = files[name].decode("utf-8", errors="ignore")
+            if options.horizontal:
+                html = _switch_to_horizontal_stylesheets(html, name, files)
             files[name] = normalize_html(
                 html,
                 options,
@@ -108,6 +112,41 @@ def convert_epub(input_path: Path, output_path: Path, options: ConvertOptions) -
 
     _write_epub_zip(files, output_path)
     return output_path
+
+
+def _switch_to_horizontal_stylesheets(
+    html: str,
+    html_path: str,
+    files: dict[str, bytes],
+) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+    base_dir = posixpath.dirname(html_path)
+    changed = False
+    for link in soup.find_all("link", href=True):
+        if not isinstance(link, Tag):
+            continue
+        href = str(link.get("href", ""))
+        candidates = []
+        if "_v_" in href:
+            candidates.append(href.replace("_v_", "_h_"))
+        if href.endswith("_v.css"):
+            candidates.append(href[:-6] + "_h.css")
+        if href == "nav_v.css":
+            candidates.append("nav_h.css")
+
+        for candidate in candidates:
+            candidate_path = posixpath.normpath(posixpath.join(base_dir, candidate))
+            if candidate_path in files:
+                link["href"] = candidate
+                classes = [
+                    "horizontal" if css_class == "vertical" else css_class
+                    for css_class in link.get("class", [])
+                ]
+                if classes:
+                    link["class"] = classes
+                changed = True
+                break
+    return str(soup) if changed else html
 
 
 def _force_ltr_spine(opf_bytes: bytes, options: ConvertOptions) -> bytes:
