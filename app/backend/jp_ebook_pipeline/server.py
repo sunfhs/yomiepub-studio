@@ -405,38 +405,46 @@ INDEX_HTML = """<!doctype html>
     <section class="intro" aria-label="YomiEpub Studio">
       <div>
         <h1>YomiEpub Studio</h1>
-        <p class="tagline">ローカルの縦書き・ふりがななしの日本語 EPUB、TXT、HTML を、横書き・ふりがな付き・KOReader 向け EPUB に変換します。</p>
-        <p class="format-note"><strong>生成ファイル名</strong><code>【書名（作者）Yomi.epub】</code></p>
+        <p class="tagline">Local vertical Japanese EPUB, TXT, HTML を、horizontal layout + ふりがな付きの KOReader-ready EPUB に変換します。</p>
+        <p class="format-note"><strong>Output name</strong><code>【書名（作者）Yomi.epub】</code></p>
       </div>
-      <figure class="visual-panel" aria-label="横書きふりがなプレビュー">
+      <figure class="visual-panel" aria-label="Vertical to horizontal furigana preview">
         <svg viewBox="0 0 560 360" role="img" aria-labelledby="preview-title" xmlns="http://www.w3.org/2000/svg">
-          <title id="preview-title">YomiEpub 横書きふりがなプレビュー</title>
+          <title id="preview-title">YomiEpub vertical to horizontal furigana preview</title>
           <rect width="560" height="360" fill="#fffdf8"/>
           <rect x="40" y="36" width="196" height="288" rx="8" fill="#f3efe5" stroke="#cbc2b0" stroke-width="3"/>
           <rect x="324" y="36" width="196" height="288" rx="8" fill="#f7fbff" stroke="#b9c7d9" stroke-width="3"/>
           <text x="80" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="34" writing-mode="tb">阪急電車</text>
           <text x="148" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="26" writing-mode="tb">宝塚駅</text>
+          <line class="preview-line" x1="188" y1="110" x2="188" y2="250" stroke="#cfc8b9" stroke-width="3"/>
+          <line class="preview-line" x1="204" y1="110" x2="204" y2="236" stroke="#cfc8b9" stroke-width="3"/>
+          <line class="preview-line" x1="220" y1="110" x2="220" y2="224" stroke="#cfc8b9" stroke-width="3"/>
+          <rect class="preview-highlight" x="104" y="258" width="20" height="46" rx="4" fill="#d6e5de"/>
           <path class="preview-arrow" d="M260 176h38" stroke="#245b47" stroke-width="6" stroke-linecap="round"/>
           <path class="preview-arrow-head" d="M294 160l24 16-24 16" fill="none" stroke="#245b47" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
           <text x="358" y="98" fill="#7d6a43" font-family="Georgia, serif" font-size="15">はんきゅう</text>
           <text x="360" y="126" fill="#202124" font-family="Georgia, serif" font-size="36">阪急</text>
           <text x="430" y="98" fill="#7d6a43" font-family="Georgia, serif" font-size="15">でんしゃ</text>
           <text x="432" y="126" fill="#202124" font-family="Georgia, serif" font-size="36">電車</text>
-          <line class="preview-line" x1="356" y1="164" x2="488" y2="164" stroke="#cfc8b9" stroke-width="3"/>
-          <line class="preview-line" x1="356" y1="198" x2="486" y2="198" stroke="#cfc8b9" stroke-width="3"/>
-          <line class="preview-line" x1="356" y1="232" x2="472" y2="232" stroke="#cfc8b9" stroke-width="3"/>
-          <rect class="preview-highlight" x="356" y="262" width="96" height="20" rx="4" fill="#d6e5de"/>
+          <text x="358" y="164" fill="#7d6a43" font-family="Georgia, serif" font-size="13">たからづか</text>
+          <text x="360" y="188" fill="#4f4a43" font-family="Georgia, serif" font-size="27">宝塚</text>
+          <text x="432" y="164" fill="#7d6a43" font-family="Georgia, serif" font-size="13">えき</text>
+          <text x="434" y="188" fill="#4f4a43" font-family="Georgia, serif" font-size="27">駅</text>
+          <line class="preview-line" x1="356" y1="222" x2="488" y2="222" stroke="#cfc8b9" stroke-width="3"/>
+          <line class="preview-line" x1="356" y1="252" x2="486" y2="252" stroke="#cfc8b9" stroke-width="3"/>
+          <line class="preview-line" x1="356" y1="282" x2="472" y2="282" stroke="#cfc8b9" stroke-width="3"/>
+          <rect class="preview-highlight" x="356" y="304" width="96" height="14" rx="4" fill="#d6e5de"/>
         </svg>
       </figure>
     </section>
 
     <form id="convert-form">
       <fieldset>
-        <legend>ファイルを選択</legend>
+        <legend>File / ファイル</legend>
         <input id="file" name="file" type="file" accept=".epub,.txt,.html,.xhtml,.htm" required />
         <section class="source-links" aria-label="Legal source links">
-          <h2>合法・パブリックドメインの日本語テキスト</h2>
-          <p>本ツールは電子書籍のダウンロード、海賊版検索、DRM 解除を行いません。利用権のあるローカルファイルだけを処理してください。</p>
+          <h2>合法・Public Domain Japanese Texts</h2>
+          <p>This tool does not download ebooks, search pirated copies, or remove DRM. 利用権のあるローカルファイルだけを処理してください。</p>
           <div class="links">
             <a href="https://www.aozora.gr.jp/" target="_blank" rel="noreferrer">
               <strong>青空文庫</strong>
@@ -467,24 +475,24 @@ INDEX_HTML = """<!doctype html>
       </fieldset>
 
       <div class="actions">
-        <button id="submit" type="submit">変換して EPUB をダウンロード</button>
+        <button id="submit" type="submit">Convert & Download EPUB</button>
         <span id="status"></span>
       </div>
 
       <section class="utility-links" aria-label="Useful external tools">
-        <h2>関連ツール</h2>
+        <h2>Related Tools</h2>
         <a href="https://app.immersivetranslate.com/ebook/make/?utm_source=extension&utm_medium=extension&utm_campaign=popup_more" target="_blank" rel="noreferrer">
-          <strong>沉浸式翻译：双语电子书制作</strong>
-          <span>双语 EPUB を作りたい場合はこちら。</span>
+          <strong>Immersive Translate: Bilingual EPUB Maker</strong>
+          <span>日本語と英語・中国語などの bilingual EPUB を作りたい場合はこちら。</span>
         </a>
         <a href="http://192.168.0.230:9310/" target="_blank" rel="noreferrer">
-          <strong>汉王 Wi-Fi 传书</strong>
-          <span>提示：请先打开电纸书上的 Wi-Fi 传书功能，再打开该网站。</span>
+          <strong>Hanvon Wi-Fi Transfer</strong>
+          <span>Open Wi-Fi transfer on your e-reader first, then visit this local address.</span>
         </a>
       </section>
     </form>
 
-    <p class="note">すべての処理はこの端末内で完了します。ファイルはクラウドにアップロードされません。ダウンロード後、EPUB を KOReader に転送して開いてください。</p>
+    <p class="note">All processing stays on this device. ファイルはクラウドにアップロードされません。After download, transfer the EPUB to KOReader.</p>
   </main>
 
   <script>
@@ -509,7 +517,7 @@ INDEX_HTML = """<!doctype html>
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = new FormData(form);
-      status.textContent = "変換中...";
+      status.textContent = "Converting...";
       submit.disabled = true;
       try {
         const response = await fetch("/convert", { method: "POST", body: data });
@@ -529,9 +537,9 @@ INDEX_HTML = """<!doctype html>
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        status.textContent = "完了しました。ブラウザのダウンロードフォルダを確認してください。";
+        status.textContent = "Done. ブラウザの downloads folder を確認してください。";
       } catch (error) {
-        status.textContent = error.message || "変換に失敗しました";
+        status.textContent = error.message || "Conversion failed";
       } finally {
         submit.disabled = false;
       }
