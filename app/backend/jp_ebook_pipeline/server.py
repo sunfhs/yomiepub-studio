@@ -10,14 +10,14 @@ from fastapi.responses import FileResponse, HTMLResponse
 from jp_ebook_pipeline.converter import convert_file
 from jp_ebook_pipeline.models import ConvertOptions
 
-app = FastAPI(title="JP Ebook Furigana Pipeline")
+app = FastAPI(title="YomiEpub Studio")
 
 INDEX_HTML = """<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>JP Ebook Furigana Pipeline</title>
+  <title>YomiEpub Studio</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -47,7 +47,7 @@ INDEX_HTML = """<!doctype html>
       padding-top: 22px;
       border-top: 1px solid #d7d4c9;
     }
-    fieldset {
+    fieldset, .source-links {
       border: 1px solid #d3d0c4;
       border-radius: 8px;
       padding: 16px;
@@ -114,40 +114,107 @@ INDEX_HTML = """<!doctype html>
       font-size: 14px;
       color: #656761;
     }
+    .source-links {
+      margin-top: 14px;
+    }
+    .source-links h2 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+    .source-links p {
+      font-size: 14px;
+    }
+    .links {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .links a {
+      display: block;
+      min-height: 68px;
+      padding: 10px;
+      border: 1px solid #dedbd1;
+      border-radius: 7px;
+      color: #193f33;
+      background: #fafaf8;
+      text-decoration: none;
+    }
+    .links strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+    .links span {
+      display: block;
+      color: #62645e;
+      font-size: 12px;
+      line-height: 1.35;
+    }
     @media (max-width: 680px) {
-      .grid { grid-template-columns: 1fr; }
+      .grid, .links { grid-template-columns: 1fr; }
       h1 { font-size: 25px; }
     }
   </style>
 </head>
 <body>
   <main>
-    <h1>JP Ebook Furigana Pipeline</h1>
-    <p>Upload a local Japanese EPUB, TXT, or HTML file. The app returns a horizontal, furigana-enabled, KOReader-friendly EPUB.</p>
+    <h1>YomiEpub Studio</h1>
+    <p>把本地日文 EPUB、TXT 或 HTML 转成横排、带ふりがな、适合 KOReader 阅读的 EPUB。</p>
 
     <form id="convert-form">
       <fieldset>
-        <legend>Input</legend>
+        <legend>导入文件</legend>
         <input id="file" name="file" type="file" accept=".epub,.txt,.html,.xhtml,.htm" required />
+        <section class="source-links" aria-label="Legal source links">
+          <h2>合法/公版日文文本来源</h2>
+          <p>本工具不提供电子书下载、盗版搜索或 DRM 移除。下面只是公开来源入口，请只处理你有权使用的文件。</p>
+          <div class="links">
+            <a href="https://www.aozora.gr.jp/" target="_blank" rel="noreferrer">
+              <strong>青空文庫</strong>
+              <span>日本公版文学与授权公开作品</span>
+            </a>
+            <a href="https://www.gutenberg.org/browse/languages/ja" target="_blank" rel="noreferrer">
+              <strong>Project Gutenberg JP</strong>
+              <span>Project Gutenberg 日文分类</span>
+            </a>
+            <a href="https://wikisource.org/wiki/Wikisource:About_Wikisource/ja" target="_blank" rel="noreferrer">
+              <strong>Wikisource</strong>
+              <span>公版或自由授权文本资料库</span>
+            </a>
+            <a href="https://dl.ndl.go.jp/" target="_blank" rel="noreferrer">
+              <strong>国会图书馆</strong>
+              <span>日本国立国会图书馆数字馆藏</span>
+            </a>
+            <a href="https://syosetu.com/" target="_blank" rel="noreferrer">
+              <strong>小説家になろう</strong>
+              <span>作者投稿小说，注意站内条款</span>
+            </a>
+            <a href="https://kakuyomu.jp/" target="_blank" rel="noreferrer">
+              <strong>カクヨム</strong>
+              <span>作者投稿小说，注意站内条款</span>
+            </a>
+          </div>
+        </section>
       </fieldset>
 
       <fieldset>
-        <legend>Options</legend>
+        <legend>整理选项</legend>
         <div class="grid">
-          <label><input name="horizontal" type="checkbox" checked /> Convert to horizontal layout</label>
-          <label><input name="furigana" type="checkbox" checked /> Add furigana</label>
-          <label>Font size <input name="font_size" type="text" value="1.08em" /></label>
-          <label>Line height <input name="line_height" type="text" value="1.9" /></label>
+          <label><input name="horizontal" type="checkbox" checked /> 转成横排</label>
+          <label><input name="furigana" type="checkbox" checked /> 添加ふりがな</label>
+          <label>字号 <input name="font_size" type="text" value="1.08em" /></label>
+          <label>行距 <input name="line_height" type="text" value="1.9" /></label>
         </div>
       </fieldset>
 
       <div class="actions">
-        <button id="submit" type="submit">Convert and download EPUB</button>
+        <button id="submit" type="submit">转换并下载 EPUB</button>
         <span id="status"></span>
       </div>
     </form>
 
-    <p class="note">This local app does not download books, remove DRM, or send files to any cloud service. It only processes the file you choose on this computer.</p>
+    <p class="note">所有处理都在本机完成；文件不会上传到云端。</p>
   </main>
 
   <script>
@@ -158,7 +225,7 @@ INDEX_HTML = """<!doctype html>
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = new FormData(form);
-      status.textContent = "Converting...";
+      status.textContent = "正在转换...";
       submit.disabled = true;
       try {
         const response = await fetch("/convert", { method: "POST", body: data });
@@ -178,9 +245,9 @@ INDEX_HTML = """<!doctype html>
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        status.textContent = "Done. Check your downloads folder.";
+        status.textContent = "完成。请查看浏览器下载目录。";
       } catch (error) {
-        status.textContent = error.message || "Conversion failed";
+        status.textContent = error.message || "转换失败";
       } finally {
         submit.disabled = false;
       }

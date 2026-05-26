@@ -1,6 +1,6 @@
-# JP Ebook Furigana Bilingual Pipeline
+# YomiEpub Studio
 
-A local toolkit and reading SOP for Japanese ebooks on Android-based e-ink readers, especially Chinese mainland devices whose built-in readers may not reliably support Japanese EPUB, vertical layout, ruby furigana, or bilingual layouts.
+YomiEpub Studio is a local toolkit and reading SOP for Japanese ebooks on Android-based e-ink readers, especially Chinese mainland devices whose built-in readers may not reliably support Japanese EPUB, vertical layout, ruby furigana, or bilingual layouts.
 
 The recommended reading path is:
 
