@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import json
 import re
+import time
+import urllib.request
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from jp_ebook_pipeline.converter import convert_file
 from jp_ebook_pipeline.models import ConvertOptions
 
 app = FastAPI(title="YomiEpub Studio")
+
+BING_WALLPAPER_API = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=ja-JP"
+WALLPAPER_CACHE: dict[str, float | str] = {"timestamp": 0.0, "url": ""}
 
 INDEX_HTML = """<!doctype html>
 <html lang="ja">
@@ -19,21 +25,56 @@ INDEX_HTML = """<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>YomiEpub Studio</title>
   <style>
+    :root {
+      --wallpaper-image: linear-gradient(135deg, #f4f1e8 0%, #dfe9e3 48%, #f7eee6 100%);
+      --glass-bg: rgba(255, 255, 255, 0.68);
+      --glass-border: rgba(255, 255, 255, 0.64);
+      --glass-shadow: 0 18px 46px rgba(33, 42, 36, 0.13);
+    }
     * { box-sizing: border-box; }
+    html {
+      min-height: 100%;
+      background: #f5f4ef;
+    }
     body {
       margin: 0;
+      min-height: 100vh;
       color: #202124;
-      background: #f5f4ef;
+      background: transparent;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+    body::before,
+    body::after {
+      position: fixed;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+    }
+    body::before {
+      z-index: 0;
+      background-image: var(--wallpaper-image);
+      background-position: center;
+      background-size: cover;
+      transform: scale(1.04);
+    }
+    body::after {
+      z-index: 1;
+      background:
+        linear-gradient(90deg, rgba(247, 245, 238, 0.92), rgba(247, 245, 238, 0.72) 52%, rgba(247, 245, 238, 0.52)),
+        rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(11px) saturate(1.05);
+      -webkit-backdrop-filter: blur(11px) saturate(1.05);
+    }
     main {
-      width: min(980px, calc(100vw - 32px));
-      margin: 34px auto 56px;
+      position: relative;
+      z-index: 2;
+      width: min(1140px, calc(100vw - 64px));
+      margin: 42px auto 56px;
     }
     .intro {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: 28px;
+      grid-template-columns: minmax(0, 1fr) minmax(420px, 520px);
+      gap: 40px;
       align-items: center;
     }
     h1 {
@@ -59,8 +100,11 @@ INDEX_HTML = """<!doctype html>
       border: 1px solid #d7d0bf;
       border-radius: 7px;
       color: #3b3d38;
-      background: #fffdf8;
+      background: rgba(255, 253, 248, 0.72);
       font-size: 14px;
+      box-shadow: 0 10px 28px rgba(33, 42, 36, 0.08);
+      backdrop-filter: blur(14px) saturate(1.08);
+      -webkit-backdrop-filter: blur(14px) saturate(1.08);
     }
     .format-note strong {
       white-space: nowrap;
@@ -73,15 +117,24 @@ INDEX_HTML = """<!doctype html>
     }
     .visual-panel {
       overflow: hidden;
-      border: 1px solid #c9c2b2;
-      border-radius: 8px;
-      background: #fffdf8;
+      display: grid;
+      place-items: center;
+      min-height: 304px;
+      padding: 22px;
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(18px) saturate(1.14);
+      -webkit-backdrop-filter: blur(18px) saturate(1.14);
       transform: translateZ(0);
     }
     .visual-panel svg {
       display: block;
-      width: 100%;
+      width: min(100%, 470px);
       height: auto;
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(58, 52, 43, 0.11);
     }
     .preview-arrow,
     .preview-arrow-head,
@@ -101,10 +154,13 @@ INDEX_HTML = """<!doctype html>
       border-top: 1px solid #d7d4c9;
     }
     fieldset, .source-links {
-      border: 1px solid #d3d0c4;
+      border: 1px solid var(--glass-border);
       border-radius: 8px;
       padding: 16px;
-      background: #fff;
+      background: var(--glass-bg);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(16px) saturate(1.1);
+      -webkit-backdrop-filter: blur(16px) saturate(1.1);
     }
     legend {
       padding: 0 6px;
@@ -121,7 +177,7 @@ INDEX_HTML = """<!doctype html>
       padding: 12px;
       border: 1px dashed #aaa596;
       border-radius: 8px;
-      background: #fafaf8;
+      background: rgba(250, 250, 248, 0.74);
     }
     .actions {
       display: flex;
@@ -167,9 +223,12 @@ INDEX_HTML = """<!doctype html>
       display: grid;
       gap: 10px;
       padding: 14px;
-      border: 1px solid #d3d0c4;
+      border: 1px solid var(--glass-border);
       border-radius: 8px;
-      background: #fff;
+      background: var(--glass-bg);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(16px) saturate(1.1);
+      -webkit-backdrop-filter: blur(16px) saturate(1.1);
     }
     .utility-links h2 {
       margin: 0;
@@ -181,7 +240,7 @@ INDEX_HTML = """<!doctype html>
       border: 1px solid #dedbd1;
       border-radius: 7px;
       color: #193f33;
-      background: #fafaf8;
+      background: rgba(250, 250, 248, 0.72);
       text-decoration: none;
       transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
     }
@@ -224,7 +283,7 @@ INDEX_HTML = """<!doctype html>
       border: 1px solid #dedbd1;
       border-radius: 7px;
       color: #193f33;
-      background: #fafaf8;
+      background: rgba(250, 250, 248, 0.72);
       text-decoration: none;
       transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
     }
@@ -244,9 +303,19 @@ INDEX_HTML = """<!doctype html>
       font-size: 12px;
       line-height: 1.35;
     }
-    @media (max-width: 680px) {
+    @media (max-width: 860px) {
       .intro, .links { grid-template-columns: 1fr; }
-      .visual-panel { max-width: 340px; }
+      main {
+        width: min(100vw - 28px, 980px);
+        margin-top: 26px;
+      }
+      body::after {
+        background: rgba(247, 245, 238, 0.78);
+      }
+      .visual-panel {
+        min-height: 252px;
+        padding: 16px;
+      }
       .format-note {
         display: grid;
         gap: 4px;
@@ -423,6 +492,20 @@ INDEX_HTML = """<!doctype html>
     const status = document.getElementById("status");
     const submit = document.getElementById("submit");
 
+    async function loadWallpaper() {
+      try {
+        const response = await fetch("/wallpaper");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.url) {
+          document.documentElement.style.setProperty("--wallpaper-image", `url("${data.url}")`);
+        }
+      } catch (_) {
+      }
+    }
+
+    loadWallpaper();
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = new FormData(form);
@@ -471,9 +554,42 @@ def output_filename(filename: str | None) -> str:
     return f"{cleaned or 'converted'}Yomi.epub"
 
 
+def bing_wallpaper_url() -> str:
+    now = time.time()
+    cached_url = str(WALLPAPER_CACHE["url"])
+    cached_timestamp = float(WALLPAPER_CACHE["timestamp"])
+    if cached_url and now - cached_timestamp < 60 * 60:
+        return cached_url
+
+    try:
+        request = urllib.request.Request(
+            BING_WALLPAPER_API,
+            headers={"User-Agent": "YomiEpub Studio"},
+        )
+        with urllib.request.urlopen(request, timeout=4) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        image = data.get("images", [{}])[0]
+        url = str(image.get("url", ""))
+        if url.startswith("/"):
+            url = f"https://www.bing.com{url}"
+        if not url:
+            return ""
+    except Exception:
+        return ""
+
+    WALLPAPER_CACHE["timestamp"] = now
+    WALLPAPER_CACHE["url"] = url
+    return url
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/wallpaper")
+def wallpaper() -> JSONResponse:
+    return JSONResponse({"url": bing_wallpaper_url()})
 
 
 @app.get("/", response_class=HTMLResponse)
