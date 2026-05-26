@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import re
+import warnings
 from html import escape
 
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning, NavigableString, Tag
 
 from jp_ebook_pipeline.furigana import ReadingProvider, add_furigana_to_text
 from jp_ebook_pipeline.models import ConvertOptions
 
 
 KO_READER_CSS_ID = "jp-ebook-pipeline-koreader-css"
+XML_DECLARATION_RE = re.compile(r"^\s*xml\s+version\s*=", re.IGNORECASE)
 
 
 def koreader_css(options: ConvertOptions) -> str:
@@ -38,6 +41,9 @@ rt {{
 
 def ensure_html_shell(html: str, title: str = "Converted Ebook") -> BeautifulSoup:
     soup = BeautifulSoup(html, "html.parser")
+    for child in list(soup.contents):
+        if isinstance(child, NavigableString) and XML_DECLARATION_RE.match(str(child)):
+            child.extract()
     if soup.find("html") is None:
         body = soup.new_tag("body")
         for child in list(soup.contents):
@@ -83,7 +89,9 @@ def add_furigana_to_html(
     ]
     for node in text_nodes:
         marked = add_furigana_to_text(str(node), provider)
-        fragment = BeautifulSoup(marked, "html.parser")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", MarkupResemblesLocatorWarning)
+            fragment = BeautifulSoup(marked, "html.parser")
         replacement = list(fragment.contents)
         if not replacement:
             continue
@@ -98,12 +106,16 @@ def normalize_html(
     options: ConvertOptions,
     provider: ReadingProvider | None = None,
     title: str = "Converted Ebook",
+    include_doctype: bool = True,
 ) -> str:
     if options.furigana:
         html = add_furigana_to_html(html, provider)
     soup = ensure_html_shell(html, title=title)
     add_css_override(soup, options)
-    return "<!doctype html>\n" + str(soup)
+    rendered = str(soup)
+    if include_doctype:
+        return "<!doctype html>\n" + rendered
+    return rendered
 
 
 def text_to_html(text: str, options: ConvertOptions, title: str) -> str:

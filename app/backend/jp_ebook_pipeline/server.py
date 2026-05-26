@@ -258,10 +258,16 @@ INDEX_HTML = """<!doctype html>
 """
 
 
-def safe_stem(filename: str | None) -> str:
+def output_filename(filename: str | None) -> str:
     raw = Path(filename or "converted").stem
-    cleaned = re.sub(r"[^\w\u3040-\u30ff\u3400-\u9fff\u4e00-\u9fff-]+", "-", raw).strip("-")
-    return cleaned or "converted"
+    cleaned = re.sub(r"[\x00-\x1f\x7f/\\:]+", "", raw).strip()
+    cleaned = re.sub(
+        r"\s*\([^)]*(?:z-library|z-lib|1lib)[^)]*\)\s*$",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    ).strip()
+    return f"{cleaned or 'converted'}Yomi.epub"
 
 
 @app.get("/health")
@@ -285,10 +291,7 @@ async def convert_endpoint(
     if not file.filename:
         raise HTTPException(status_code=400, detail="Please choose a file.")
 
-    stem = safe_stem(file.filename)
-    suffix = "-horizontal" if horizontal else ""
-    suffix += "-furigana" if furigana else ""
-    download_name = f"{stem}{suffix}-koreader.epub"
+    download_name = output_filename(file.filename)
     stable_output = Path("output") / download_name
     stable_output.parent.mkdir(exist_ok=True)
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import mimetypes
 import posixpath
+import re
 import uuid
 import zipfile
 from html import escape
@@ -95,9 +96,12 @@ def convert_epub(input_path: Path, output_path: Path, options: ConvertOptions) -
     for name in html_paths:
         if name in files:
             html = files[name].decode("utf-8", errors="ignore")
-            files[name] = normalize_html(html, options, title=input_path.stem).encode(
-                "utf-8"
-            )
+            files[name] = normalize_html(
+                html,
+                options,
+                title=input_path.stem,
+                include_doctype=False,
+            ).encode("utf-8")
 
     if opf_path in files:
         files[opf_path] = _force_ltr_spine(files[opf_path], options)
@@ -109,15 +113,31 @@ def convert_epub(input_path: Path, output_path: Path, options: ConvertOptions) -
 def _force_ltr_spine(opf_bytes: bytes, options: ConvertOptions) -> bytes:
     if not options.horizontal:
         return opf_bytes
-    try:
-        opf = ET.fromstring(opf_bytes)
-    except ET.ParseError:
-        return opf_bytes
-    ns = {"opf": "http://www.idpf.org/2007/opf"}
-    spine = opf.find(".//opf:spine", ns)
-    if spine is not None:
-        spine.set("page-progression-direction", "ltr")
-    return ET.tostring(opf, encoding="utf-8", xml_declaration=True)
+    text = opf_bytes.decode("utf-8", errors="ignore")
+    spine_re = re.compile(
+        r"(<(?:[A-Za-z_][\w.-]*:)?spine\b)([^>]*)(/?>)",
+        re.IGNORECASE,
+    )
+    direction_re = re.compile(
+        r"(page-progression-direction\s*=\s*)([\"']).*?\2",
+        re.IGNORECASE,
+    )
+
+    def replace_spine(match: re.Match[str]) -> str:
+        start, attrs, end = match.groups()
+
+        def replace_direction(direction: re.Match[str]) -> str:
+            quote = direction.group(2)
+            return f"{direction.group(1)}{quote}ltr{quote}"
+
+        if direction_re.search(attrs):
+            attrs = direction_re.sub(replace_direction, attrs, count=1)
+        else:
+            attrs = f'{attrs} page-progression-direction="ltr"'
+        return f"{start}{attrs}{end}"
+
+    updated = spine_re.sub(replace_spine, text, count=1)
+    return updated.encode("utf-8")
 
 
 def build_epub_from_text(
@@ -200,4 +220,3 @@ def guess_input_kind(input_path: Path) -> str:
     if guessed == "application/epub+zip":
         return "epub"
     raise ValueError(f"Unsupported input type: {input_path}")
-
