@@ -24,6 +24,7 @@ dev = [
 
 [project.scripts]
 jp-ebook-convert = "jp_ebook_pipeline.cli:main"
+jp-ebook-web = "jp_ebook_pipeline.server:main"
 
 [tool.setuptools.package-dir]
 "" = "app/backend"
@@ -33,4 +34,3 @@ where = ["app/backend"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-

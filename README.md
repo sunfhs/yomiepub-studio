@@ -47,10 +47,12 @@ KOReader supports Android and common document formats including EPUB, PDF, MOBI,
 Implemented now:
 
 - CLI converter for local EPUB/TXT/HTML.
+- Local Web UI for upload, options, conversion, and EPUB download.
 - Horizontal CSS cleanup/override.
 - Furigana insertion with `pykakasi` when installed.
 - KOReader-friendly EPUB repacking.
-- Placeholder FastAPI backend and frontend project skeleton.
+- FastAPI backend.
+- Placeholder React frontend skeleton for a future richer UI.
 - Unit tests for furigana and EPUB packaging.
 
 Planned:
@@ -73,6 +75,20 @@ Convert an EPUB:
 ```bash
 jp-ebook-convert input.epub --furigana --horizontal --output output.epub
 ```
+
+Start the local Web UI:
+
+```bash
+jp-ebook-web
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8765
+```
+
+The local page lets you upload a Japanese EPUB/TXT/HTML file, choose horizontal layout and furigana options, then download the KOReader-friendly EPUB.
 
 Convert a TXT file:
 
@@ -135,4 +151,3 @@ jp-ebook-convert my-book.epub --furigana --horizontal --output my-book-koreader.
 This project is a local format-conversion and reading-accessibility toolkit. It is intended for study, accessibility, and personal reading workflows involving legally obtained files.
 
 Do not use this project to distribute copyrighted content, bypass DRM, scrape piracy sites, or automate unauthorized ebook downloads.
-
