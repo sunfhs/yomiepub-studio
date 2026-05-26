@@ -1,0 +1,77 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #202124;
+  background: #f7f7f4;
+}
+
+button,
+.upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border: 1px solid #c9c8c2;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #fff;
+  color: #202124;
+  font: inherit;
+}
+
+button.primary {
+  color: #fff;
+  border-color: #245b47;
+  background: #245b47;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+.shell {
+  width: min(980px, calc(100vw - 32px));
+  margin: 32px auto;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  gap: 24px;
+  padding: 24px 0;
+  border-top: 1px solid #d8d6cc;
+}
+
+h1 {
+  margin: 0 0 10px;
+  font-size: 28px;
+}
+
+p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.options {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+@media (max-width: 720px) {
+  .panel {
+    grid-template-columns: 1fr;
+  }
+}
+

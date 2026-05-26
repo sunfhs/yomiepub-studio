@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jp-ebook-furigana-bilingual-pipeline"
+version = "0.1.0"
+description = "Convert local Japanese ebooks into KOReader-friendly horizontal EPUB files with optional furigana."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "beautifulsoup4>=4.12",
+  "fastapi>=0.115",
+  "pykakasi>=2.3",
+  "python-multipart>=0.0.9",
+  "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+jp-ebook-convert = "jp_ebook_pipeline.cli:main"
+
+[tool.setuptools.package-dir]
+"" = "app/backend"
+
+[tool.setuptools.packages.find]
+where = ["app/backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
