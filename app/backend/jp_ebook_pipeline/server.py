@@ -13,7 +13,7 @@ from jp_ebook_pipeline.models import ConvertOptions
 app = FastAPI(title="YomiEpub Studio")
 
 INDEX_HTML = """<!doctype html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,8 +27,14 @@ INDEX_HTML = """<!doctype html>
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     main {
-      width: min(900px, calc(100vw - 32px));
+      width: min(980px, calc(100vw - 32px));
       margin: 34px auto 56px;
+    }
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 28px;
+      align-items: center;
     }
     h1 {
       margin: 0 0 8px;
@@ -39,6 +45,42 @@ INDEX_HTML = """<!doctype html>
       margin: 0;
       line-height: 1.65;
       color: #4b4d4a;
+    }
+    .tagline {
+      max-width: 650px;
+      font-size: 17px;
+    }
+    .format-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 8px 10px;
+      border: 1px solid #d7d0bf;
+      border-radius: 7px;
+      color: #3b3d38;
+      background: #fffdf8;
+      font-size: 14px;
+    }
+    .format-note strong {
+      white-space: nowrap;
+    }
+    .format-note code {
+      color: #183f33;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    .visual-panel {
+      overflow: hidden;
+      border: 1px solid #c9c2b2;
+      border-radius: 8px;
+      background: #fffdf8;
+    }
+    .visual-panel svg {
+      display: block;
+      width: 100%;
+      height: auto;
     }
     form {
       margin-top: 24px;
@@ -152,69 +194,100 @@ INDEX_HTML = """<!doctype html>
       line-height: 1.35;
     }
     @media (max-width: 680px) {
-      .grid, .links { grid-template-columns: 1fr; }
+      .intro, .grid, .links { grid-template-columns: 1fr; }
+      .visual-panel { max-width: 340px; }
+      .format-note {
+        display: grid;
+        gap: 4px;
+        justify-items: start;
+      }
       h1 { font-size: 25px; }
     }
   </style>
 </head>
 <body>
   <main>
-    <h1>YomiEpub Studio</h1>
-    <p>把本地日文 EPUB、TXT 或 HTML 转成横排、带ふりがな、适合 KOReader 阅读的 EPUB。</p>
+    <section class="intro" aria-label="YomiEpub Studio">
+      <div>
+        <h1>YomiEpub Studio</h1>
+        <p class="tagline">ローカルの縦書き・ふりがななしの日本語 EPUB、TXT、HTML を、横書き・ふりがな付き・KOReader 向け EPUB に変換します。</p>
+        <p class="format-note"><strong>生成ファイル名</strong><code>【書名（作者）Yomi.epub】</code></p>
+      </div>
+      <figure class="visual-panel" aria-label="横書きふりがなプレビュー">
+        <svg viewBox="0 0 560 360" role="img" aria-labelledby="preview-title" xmlns="http://www.w3.org/2000/svg">
+          <title id="preview-title">YomiEpub 横書きふりがなプレビュー</title>
+          <rect width="560" height="360" fill="#fffdf8"/>
+          <rect x="40" y="36" width="196" height="288" rx="8" fill="#f3efe5" stroke="#cbc2b0" stroke-width="3"/>
+          <rect x="324" y="36" width="196" height="288" rx="8" fill="#f7fbff" stroke="#b9c7d9" stroke-width="3"/>
+          <text x="80" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="34" writing-mode="tb">阪急電車</text>
+          <text x="148" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="26" writing-mode="tb">宝塚駅</text>
+          <path d="M260 176h38" stroke="#245b47" stroke-width="6" stroke-linecap="round"/>
+          <path d="M294 160l24 16-24 16" fill="none" stroke="#245b47" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="358" y="98" fill="#7d6a43" font-family="Georgia, serif" font-size="15">はんきゅう</text>
+          <text x="360" y="126" fill="#202124" font-family="Georgia, serif" font-size="36">阪急</text>
+          <text x="430" y="98" fill="#7d6a43" font-family="Georgia, serif" font-size="15">でんしゃ</text>
+          <text x="432" y="126" fill="#202124" font-family="Georgia, serif" font-size="36">電車</text>
+          <line x1="356" y1="164" x2="488" y2="164" stroke="#cfc8b9" stroke-width="3"/>
+          <line x1="356" y1="198" x2="486" y2="198" stroke="#cfc8b9" stroke-width="3"/>
+          <line x1="356" y1="232" x2="472" y2="232" stroke="#cfc8b9" stroke-width="3"/>
+          <rect x="356" y="262" width="96" height="20" rx="4" fill="#d6e5de"/>
+        </svg>
+      </figure>
+    </section>
 
     <form id="convert-form">
       <fieldset>
-        <legend>导入文件</legend>
+        <legend>ファイルを選択</legend>
         <input id="file" name="file" type="file" accept=".epub,.txt,.html,.xhtml,.htm" required />
         <section class="source-links" aria-label="Legal source links">
-          <h2>合法/公版日文文本来源</h2>
-          <p>本工具不提供电子书下载、盗版搜索或 DRM 移除。下面只是公开来源入口，请只处理你有权使用的文件。</p>
+          <h2>合法・パブリックドメインの日本語テキスト</h2>
+          <p>本ツールは電子書籍のダウンロード、海賊版検索、DRM 解除を行いません。利用権のあるローカルファイルだけを処理してください。</p>
           <div class="links">
             <a href="https://www.aozora.gr.jp/" target="_blank" rel="noreferrer">
               <strong>青空文庫</strong>
-              <span>日本公版文学与授权公开作品</span>
+              <span>日本語のパブリックドメイン作品と公開作品</span>
             </a>
             <a href="https://www.gutenberg.org/browse/languages/ja" target="_blank" rel="noreferrer">
               <strong>Project Gutenberg JP</strong>
-              <span>Project Gutenberg 日文分类</span>
+              <span>Project Gutenberg の日本語カテゴリ</span>
             </a>
             <a href="https://wikisource.org/wiki/Wikisource:About_Wikisource/ja" target="_blank" rel="noreferrer">
               <strong>Wikisource</strong>
-              <span>公版或自由授权文本资料库</span>
+              <span>パブリックドメイン・自由ライセンスの資料</span>
             </a>
             <a href="https://dl.ndl.go.jp/" target="_blank" rel="noreferrer">
-              <strong>国会图书馆</strong>
-              <span>日本国立国会图书馆数字馆藏</span>
+              <strong>国立国会図書館</strong>
+              <span>国立国会図書館デジタルコレクション</span>
             </a>
             <a href="https://syosetu.com/" target="_blank" rel="noreferrer">
               <strong>小説家になろう</strong>
-              <span>作者投稿小说，注意站内条款</span>
+              <span>投稿作品。サイト規約を確認してください</span>
             </a>
             <a href="https://kakuyomu.jp/" target="_blank" rel="noreferrer">
               <strong>カクヨム</strong>
-              <span>作者投稿小说，注意站内条款</span>
+              <span>投稿作品。サイト規約を確認してください</span>
             </a>
           </div>
         </section>
       </fieldset>
 
       <fieldset>
-        <legend>整理选项</legend>
+        <legend>変換オプション</legend>
         <div class="grid">
-          <label><input name="horizontal" type="checkbox" checked /> 转成横排</label>
-          <label><input name="furigana" type="checkbox" checked /> 添加ふりがな</label>
-          <label>字号 <input name="font_size" type="text" value="1.08em" /></label>
-          <label>行距 <input name="line_height" type="text" value="1.9" /></label>
+          <label><input name="horizontal" type="checkbox" checked /> 横書きに変換</label>
+          <label><input name="furigana" type="checkbox" checked /> ふりがなを追加</label>
+          <label>文字サイズ <input name="font_size" type="text" value="1.08em" /></label>
+          <label>行間 <input name="line_height" type="text" value="1.9" /></label>
         </div>
       </fieldset>
 
       <div class="actions">
-        <button id="submit" type="submit">转换并下载 EPUB</button>
+        <button id="submit" type="submit">変換して EPUB をダウンロード</button>
         <span id="status"></span>
       </div>
     </form>
 
-    <p class="note">所有处理都在本机完成；文件不会上传到云端。</p>
+    <p class="note">すべての処理はこの端末内で完了します。ファイルはクラウドにアップロードされません。ダウンロード後、EPUB を KOReader に転送して開いてください。</p>
   </main>
 
   <script>
@@ -225,13 +298,13 @@ INDEX_HTML = """<!doctype html>
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = new FormData(form);
-      status.textContent = "正在转换...";
+      status.textContent = "変換中...";
       submit.disabled = true;
       try {
         const response = await fetch("/convert", { method: "POST", body: data });
         if (!response.ok) {
           const text = await response.text();
-          throw new Error(text || "Conversion failed");
+          throw new Error(text || "変換に失敗しました");
         }
         const blob = await response.blob();
         const disposition = response.headers.get("content-disposition") || "";
@@ -245,9 +318,9 @@ INDEX_HTML = """<!doctype html>
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        status.textContent = "完成。请查看浏览器下载目录。";
+        status.textContent = "完了しました。ブラウザのダウンロードフォルダを確認してください。";
       } catch (error) {
-        status.textContent = error.message || "转换失败";
+        status.textContent = error.message || "変換に失敗しました";
       } finally {
         submit.disabled = false;
       }
@@ -289,7 +362,7 @@ async def convert_endpoint(
     line_height: str = Form("1.85"),
 ) -> FileResponse:
     if not file.filename:
-        raise HTTPException(status_code=400, detail="Please choose a file.")
+        raise HTTPException(status_code=400, detail="ファイルを選択してください。")
 
     download_name = output_filename(file.filename)
     stable_output = Path("output") / download_name
@@ -312,7 +385,7 @@ async def convert_endpoint(
     except NotImplementedError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Conversion failed: {exc}") from exc
+        raise HTTPException(status_code=500, detail=f"変換に失敗しました: {exc}") from exc
 
     return FileResponse(stable_output, filename=download_name)
 
