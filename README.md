@@ -69,7 +69,7 @@ For someone who downloads this project from GitHub, the normal flow is:
 2. Install the local Python app.
 3. Start the local web page.
 4. Upload a legally obtained Japanese EPUB/TXT/HTML.
-5. Download the converted `BookTitleYomi.epub`.
+5. Download the converted horizontal furigana EPUB, named like `BookTitleYomi.epub`.
 6. Transfer it to the e-ink reader and open it in KOReader.
 
 ```bash
@@ -98,7 +98,7 @@ Then open:
 http://127.0.0.1:8765
 ```
 
-The local page lets you upload a Japanese EPUB/TXT/HTML file, choose horizontal layout and furigana options, then download the KOReader-friendly EPUB.
+The local page lets you upload a Japanese EPUB/TXT/HTML file, then download a KOReader-friendly EPUB with horizontal layout and furigana enabled by default.
 The web UI runs only on your own computer at `127.0.0.1`; files are not uploaded to a cloud service.
 
 Convert a TXT file:

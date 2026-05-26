@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 
 from jp_ebook_pipeline.converter import convert_file
@@ -123,19 +123,6 @@ INDEX_HTML = """<!doctype html>
       border-radius: 8px;
       background: #fafaf8;
     }
-    input[type="text"] {
-      width: 140px;
-      min-height: 34px;
-      padding: 6px 8px;
-      border: 1px solid #bbb7aa;
-      border-radius: 6px;
-      font: inherit;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px 18px;
-    }
     .actions {
       display: flex;
       align-items: center;
@@ -175,6 +162,44 @@ INDEX_HTML = """<!doctype html>
       margin-top: 18px;
       font-size: 14px;
       color: #656761;
+    }
+    .utility-links {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid #d3d0c4;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .utility-links h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+    .utility-links a {
+      display: block;
+      padding: 10px;
+      border: 1px solid #dedbd1;
+      border-radius: 7px;
+      color: #193f33;
+      background: #fafaf8;
+      text-decoration: none;
+      transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+    }
+    .utility-links a:hover {
+      border-color: #b7c9c0;
+      background: #f3f8f5;
+      transform: translateY(-1px);
+    }
+    .utility-links strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+    .utility-links span {
+      display: block;
+      color: #62645e;
+      font-size: 12px;
+      line-height: 1.45;
     }
     .source-links {
       margin-top: 14px;
@@ -220,7 +245,7 @@ INDEX_HTML = """<!doctype html>
       line-height: 1.35;
     }
     @media (max-width: 680px) {
-      .intro, .grid, .links { grid-template-columns: 1fr; }
+      .intro, .links { grid-template-columns: 1fr; }
       .visual-panel { max-width: 340px; }
       .format-note {
         display: grid;
@@ -372,20 +397,22 @@ INDEX_HTML = """<!doctype html>
         </section>
       </fieldset>
 
-      <fieldset>
-        <legend>変換オプション</legend>
-        <div class="grid">
-          <label><input name="horizontal" type="checkbox" checked /> 横書きに変換</label>
-          <label><input name="furigana" type="checkbox" checked /> ふりがなを追加</label>
-          <label>文字サイズ <input name="font_size" type="text" value="1.08em" /></label>
-          <label>行間 <input name="line_height" type="text" value="1.9" /></label>
-        </div>
-      </fieldset>
-
       <div class="actions">
         <button id="submit" type="submit">変換して EPUB をダウンロード</button>
         <span id="status"></span>
       </div>
+
+      <section class="utility-links" aria-label="Useful external tools">
+        <h2>関連ツール</h2>
+        <a href="https://app.immersivetranslate.com/ebook/make/?utm_source=extension&utm_medium=extension&utm_campaign=popup_more" target="_blank" rel="noreferrer">
+          <strong>沉浸式翻译：双语电子书制作</strong>
+          <span>双语 EPUB を作りたい場合はこちら。</span>
+        </a>
+        <a href="http://192.168.0.230:9310/" target="_blank" rel="noreferrer">
+          <strong>汉王 Wi-Fi 传书</strong>
+          <span>提示：请先打开电纸书上的 Wi-Fi 传书功能，再打开该网站。</span>
+        </a>
+      </section>
     </form>
 
     <p class="note">すべての処理はこの端末内で完了します。ファイルはクラウドにアップロードされません。ダウンロード後、EPUB を KOReader に転送して開いてください。</p>
@@ -457,10 +484,6 @@ def index() -> str:
 @app.post("/convert")
 async def convert_endpoint(
     file: UploadFile = File(...),
-    horizontal: bool = Form(True),
-    furigana: bool = Form(True),
-    font_size: str = Form("1.05em"),
-    line_height: str = Form("1.85"),
 ) -> FileResponse:
     if not file.filename:
         raise HTTPException(status_code=400, detail="ファイルを選択してください。")
@@ -470,10 +493,10 @@ async def convert_endpoint(
     stable_output.parent.mkdir(exist_ok=True)
 
     options = ConvertOptions(
-        horizontal=horizontal,
-        furigana=furigana,
-        font_size=font_size,
-        line_height=line_height,
+        horizontal=True,
+        furigana=True,
+        font_size="1.08em",
+        line_height="1.9",
     )
     try:
         with TemporaryDirectory() as tmp:
