@@ -4,7 +4,15 @@ import re
 import warnings
 from html import escape
 
-from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning, NavigableString, Tag
+from bs4 import (
+    BeautifulSoup,
+    Declaration,
+    Doctype,
+    MarkupResemblesLocatorWarning,
+    NavigableString,
+    ProcessingInstruction,
+    Tag,
+)
 
 from jp_ebook_pipeline.furigana import ReadingProvider, add_furigana_to_text
 from jp_ebook_pipeline.models import ConvertOptions
@@ -42,7 +50,9 @@ rt {{
 def ensure_html_shell(html: str, title: str = "Converted Ebook") -> BeautifulSoup:
     soup = BeautifulSoup(html, "html.parser")
     for child in list(soup.contents):
-        if isinstance(child, NavigableString) and XML_DECLARATION_RE.match(str(child)):
+        if isinstance(child, (Declaration, Doctype, ProcessingInstruction)):
+            child.extract()
+        elif isinstance(child, NavigableString) and XML_DECLARATION_RE.match(str(child)):
             child.extract()
     if soup.find("html") is None:
         body = soup.new_tag("body")

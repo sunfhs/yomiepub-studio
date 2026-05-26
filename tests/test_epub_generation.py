@@ -25,7 +25,9 @@ def test_txt_conversion_writes_koreader_friendly_epub(tmp_path) -> None:
 
 
 def test_epub_html_output_does_not_keep_fake_xml_declaration() -> None:
-    html = "<?xml version='1.0' encoding='utf-8'?><html><body><p>日本語</p></body></html>"
+    html = """<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE html>
+<html><body><p>日本語</p></body></html>"""
 
     result = normalize_html(
         html,
@@ -35,6 +37,7 @@ def test_epub_html_output_does_not_keep_fake_xml_declaration() -> None:
 
     assert not result.lower().startswith("<!doctype")
     assert "xml version" not in result.lower()
+    assert not result.lstrip().startswith("html\n")
     assert "<html" in result
 
 
