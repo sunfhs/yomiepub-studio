@@ -1,5 +1,7 @@
 # YomiEpub Studio
 
+[简体中文](README.zh-CN.md) | English
+
 YomiEpub Studio is a small local web app for turning Japanese EPUB/TXT/HTML files into KOReader-friendly EPUBs with horizontal layout and furigana.
 
 It is designed for people reading Japanese novels on Android-based e-ink readers, especially devices whose built-in reader does not handle vertical Japanese layout, ruby/furigana, or custom EPUB CSS reliably.
