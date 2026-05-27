@@ -63,6 +63,40 @@ Planned:
 
 ## Quick Start
 
+### Easiest Way: Double-Click Launcher
+
+For non-technical users, download the project ZIP from GitHub, unzip it, then use the launcher in the project folder:
+
+- macOS: double-click `start_yomiepub.command`
+- Windows: double-click `start_yomiepub.bat`
+
+Prerequisite: install Python 3.10 or newer from https://www.python.org/downloads/ if your computer does not already have Python.
+
+The launcher will:
+
+1. create a local Python environment in `.venv`
+2. install YomiEpub Studio on this computer
+3. start the local web server
+4. open `http://127.0.0.1:8765` in your browser
+
+Keep the launcher window open while using the web page. Close it, or press `Ctrl+C`, to stop the local server.
+
+If macOS blocks the launcher because it was downloaded from the Internet:
+
+1. right-click `start_yomiepub.command`
+2. choose **Open**
+3. confirm **Open** once
+
+After that, the browser page is:
+
+```text
+http://127.0.0.1:8765
+```
+
+Upload a legally obtained Japanese EPUB/TXT/HTML file, then download the generated `Yomi.epub` file.
+
+### Command Line Setup
+
 For someone who downloads this project from GitHub, the normal flow is:
 
 1. Clone the repository or download and unzip it.
