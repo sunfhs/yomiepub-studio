@@ -415,14 +415,14 @@ INDEX_HTML = """<!doctype html>
           <rect width="560" height="360" fill="#fffdf8"/>
           <rect x="40" y="36" width="196" height="288" rx="8" fill="#f3efe5" stroke="#cbc2b0" stroke-width="3"/>
           <rect x="324" y="36" width="196" height="288" rx="8" fill="#f7fbff" stroke="#b9c7d9" stroke-width="3"/>
-          <text x="80" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="34" writing-mode="tb">阪急電車</text>
-          <text x="148" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="26" writing-mode="tb">宝塚駅</text>
-          <line class="preview-line" x1="188" y1="110" x2="188" y2="250" stroke="#cfc8b9" stroke-width="3"/>
-          <line class="preview-line" x1="204" y1="110" x2="204" y2="236" stroke="#cfc8b9" stroke-width="3"/>
-          <line class="preview-line" x1="220" y1="110" x2="220" y2="224" stroke="#cfc8b9" stroke-width="3"/>
-          <rect class="preview-highlight" x="104" y="258" width="20" height="46" rx="4" fill="#d6e5de"/>
-          <path class="preview-arrow" d="M260 176h38" stroke="#245b47" stroke-width="6" stroke-linecap="round"/>
-          <path class="preview-arrow-head" d="M294 160l24 16-24 16" fill="none" stroke="#245b47" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="178" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="34" writing-mode="tb">阪急電車</text>
+          <text x="128" y="92" fill="#5f5750" font-family="Georgia, serif" font-size="26" writing-mode="tb">宝塚駅</text>
+          <line class="preview-line" x1="112" y1="110" x2="112" y2="250" stroke="#cfc8b9" stroke-width="3"/>
+          <line class="preview-line" x1="96" y1="110" x2="96" y2="236" stroke="#cfc8b9" stroke-width="3"/>
+          <line class="preview-line" x1="80" y1="110" x2="80" y2="224" stroke="#cfc8b9" stroke-width="3"/>
+          <rect class="preview-highlight" x="78" y="258" width="20" height="46" rx="4" fill="#d6e5de"/>
+          <path class="preview-arrow" d="M252 176h36" stroke="#245b47" stroke-width="6" stroke-linecap="round"/>
+          <path class="preview-arrow-head" d="M284 160l24 16-24 16" fill="none" stroke="#245b47" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
           <text x="358" y="98" fill="#7d6a43" font-family="Georgia, serif" font-size="15">はんきゅう</text>
           <text x="360" y="126" fill="#202124" font-family="Georgia, serif" font-size="36">阪急</text>
           <text x="430" y="98" fill="#7d6a43" font-family="Georgia, serif" font-size="15">でんしゃ</text>
