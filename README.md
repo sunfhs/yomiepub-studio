@@ -1,71 +1,51 @@
 # YomiEpub Studio
 
-YomiEpub Studio is a local toolkit and reading SOP for Japanese ebooks on Android-based e-ink readers, especially Chinese mainland devices whose built-in readers may not reliably support Japanese EPUB, vertical layout, ruby furigana, or bilingual layouts.
+YomiEpub Studio is a small local web app for turning Japanese EPUB/TXT/HTML files into KOReader-friendly EPUBs with horizontal layout and furigana.
 
-The recommended reading path is:
+It is designed for people reading Japanese novels on Android-based e-ink readers, especially devices whose built-in reader does not handle vertical Japanese layout, ruby/furigana, or custom EPUB CSS reliably.
 
-```text
-Legally obtained local Japanese EPUB/TXT/HTML
-  -> clean horizontal EPUB
-  -> optional furigana as standard HTML ruby
-  -> KOReader-friendly EPUB
-  -> transfer to Android e-ink reader
-  -> read with KOReader
-```
+<p align="center">
+  <img src="docs/assets/yomiepub-studio-home.png" alt="YomiEpub Studio local web UI" width="900">
+</p>
 
-## What This Project Does
+## What It Does
 
-- Converts Japanese EPUB/TXT/HTML into horizontal-layout EPUB.
-- Adds furigana above Japanese kanji using standard HTML ruby tags:
+- Converts local Japanese EPUB/TXT/HTML into horizontal EPUB.
+- Adds furigana above kanji with standard HTML ruby tags.
+- Repackages EPUBs in a KOReader-friendly way.
+- Shows conversion progress and downloads the final `Yomi.epub` file automatically.
+- Runs locally at `http://127.0.0.1:8765`.
+- Keeps your files on your own computer. Nothing is uploaded to a cloud service.
+
+Example ruby output:
 
 ```html
 <ruby>日本語<rt>にほんご</rt></ruby>
 ```
 
-- Generates EPUB packages with the `mimetype` entry first and uncompressed for better compatibility with stricter readers.
-- Provides a practical SOP for Android e-ink readers such as Hanvon, BOOX/Onyx mainland devices, iReader-style Android devices, and similar APK-capable e-readers.
-- Leaves room for future Chinese-Japanese bilingual output.
+## What It Does Not Do
 
-## What This Project Does Not Do
-
-This project does **not** provide ebook downloading, Z-Library scraping, piracy workflows, DRM removal, or access to copyrighted books.
+This project does not provide ebook downloading, piracy search, Z-Library automation, DRM removal, or copyrighted content access.
 
 Users must provide legally obtained local ebook files.
 
-## Recommended Setup
+The screenshots in this repository avoid copyrighted book pages. If you add your own screenshots, prefer public-domain text or the app UI itself.
 
-- General Chinese or English reading: WeRead or the device's normal reader may be enough.
-- Japanese novels with furigana or custom layout: use KOReader.
+## Recommended Reading Setup
 
-KOReader supports Android and common document formats including EPUB, PDF, MOBI, TXT, HTML, RTF, and CHM. Download it from the official KOReader website or the official GitHub Releases page:
+- Japanese novels with furigana/custom layout: KOReader
+- General Chinese or English books: WeRead or your device's normal reader may be enough
 
-- https://koreader.rocks/
-- https://github.com/koreader/koreader/releases
+KOReader supports Android and common ebook/document formats including EPUB, PDF, MOBI, TXT, HTML, RTF, and CHM.
 
-## MVP Status
-
-Implemented now:
-
-- CLI converter for local EPUB/TXT/HTML.
-- Local Web UI for upload, options, conversion, and EPUB download.
-- Horizontal CSS cleanup/override.
-- Furigana insertion with `pykakasi` when installed.
-- KOReader-friendly EPUB repacking.
-- FastAPI backend.
-- Placeholder React frontend skeleton for a future richer UI.
-- Unit tests for furigana and EPUB packaging.
-
-Planned:
-
-- Bilingual paragraph layout.
-- Optional translation backend, only when configured by the user.
-- JLPT/difficulty-aware furigana filtering.
+- KOReader official site: https://koreader.rocks/
+- KOReader GitHub Releases: https://github.com/koreader/koreader/releases
 
 ## Quick Start
 
 ### Easiest Way: Double-Click Launcher
 
-For non-technical users, download the project ZIP from GitHub, unzip it, then use the launcher in the project folder:
+Download this project from GitHub as a ZIP, unzip it, then use the launcher in the project folder:
 
 - macOS: double-click `start_yomiepub.command`
 - Windows: double-click `start_yomiepub.bat`
@@ -87,40 +67,27 @@ If macOS blocks the launcher because it was downloaded from the Internet:
 2. choose **Open**
 3. confirm **Open** once
 
-After that, the browser page is:
+## Web UI Flow
 
-```text
-http://127.0.0.1:8765
-```
+1. Open `http://127.0.0.1:8765`.
+2. Choose a legally obtained Japanese EPUB/TXT/HTML file.
+3. Click **Convert & Download EPUB**.
+4. Watch the progress bar.
+5. Download the generated file named like `BookTitleYomi.epub`.
+6. Transfer the EPUB to your e-ink reader.
+7. Open it in KOReader.
 
-Upload a legally obtained Japanese EPUB/TXT/HTML file, then download the generated `Yomi.epub` file.
-
-### Command Line Setup
-
-For someone who downloads this project from GitHub, the normal flow is:
-
-1. Clone the repository or download and unzip it.
-2. Install the local Python app.
-3. Start the local web page.
-4. Upload a legally obtained Japanese EPUB/TXT/HTML.
-5. Download the converted horizontal furigana EPUB, named like `BookTitleYomi.epub`.
-6. Transfer it to the e-ink reader and open it in KOReader.
+## Command Line Setup
 
 ```bash
-git clone https://github.com/YOUR_NAME/jp-ebook-furigana-bilingual-pipeline.git
-cd jp-ebook-furigana-bilingual-pipeline
+git clone https://github.com/sunfhs/yomiepub-studio.git
+cd yomiepub-studio
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-Convert an EPUB:
-
-```bash
-jp-ebook-convert input.epub --furigana --horizontal --output output.epub
-```
-
-Start the local Web UI:
+Start the local web UI:
 
 ```bash
 jp-ebook-web
@@ -132,13 +99,10 @@ Then open:
 http://127.0.0.1:8765
 ```
 
-The local page lets you upload a Japanese EPUB/TXT/HTML file, then download a KOReader-friendly EPUB with horizontal layout and furigana enabled by default.
-The web UI runs only on your own computer at `127.0.0.1`; files are not uploaded to a cloud service.
-
-Convert a TXT file:
+Convert from the command line:
 
 ```bash
-jp-ebook-convert samples/sample_public_domain_text.txt --furigana --output output.epub
+jp-ebook-convert input.epub --furigana --horizontal --output output.epub
 ```
 
 Run tests:
@@ -155,44 +119,66 @@ jp-ebook-convert INPUT --output OUTPUT [--furigana] [--horizontal] [--font-size 
 
 Important options:
 
-- `--furigana`: add ruby furigana to Japanese kanji.
-- `--horizontal`: force horizontal writing mode.
-- `--font-size`: CSS font size for generated/overridden content.
-- `--line-height`: CSS line height for e-ink readability.
-- `--bilingual`: reserved for future bilingual output; currently not implemented.
+- `--furigana`: add ruby furigana to Japanese kanji
+- `--horizontal`: force horizontal writing mode
+- `--font-size`: CSS font size for generated/overridden content
+- `--line-height`: CSS line height for e-ink readability
+- `--bilingual`: reserved for a future bilingual output flow
+
+## Current Scope
+
+Implemented:
+
+- local FastAPI web UI
+- double-click launchers for macOS and Windows
+- EPUB/TXT/HTML input
+- horizontal layout cleanup
+- furigana insertion with `pykakasi`
+- KOReader-friendly EPUB repacking
+- conversion progress tracking
+- local-only processing
+- unit tests for core conversion behavior
+
+Planned ideas:
+
+- optional bilingual paragraph layout
+- optional translation backend configured by the user
+- JLPT/difficulty-aware furigana filtering
+- richer desktop packaging
 
 ## Project Structure
 
 ```text
-jp-ebook-furigana-bilingual-pipeline/
+yomiepub-studio/
 ├── README.md
 ├── docs/
+│   └── assets/
 ├── app/
 │   ├── backend/
 │   └── frontend/
-├── scripts/
 ├── samples/
+├── scripts/
 ├── tests/
-├── requirements.txt
+├── start_yomiepub.command
+├── start_yomiepub.bat
 ├── pyproject.toml
 └── LICENSE
 ```
 
-## Reading SOP
+## E-Ink Reader SOP
 
-1. Install KOReader Android APK from the official site or GitHub Releases.
-2. Convert your local Japanese ebook:
-
-```bash
-jp-ebook-convert my-book.epub --furigana --horizontal --output my-book-koreader.epub
-```
-
-3. Transfer the output EPUB to the e-ink reader using WiFi transfer, USB, Syncthing, or another local method.
+1. Install KOReader Android APK from the official KOReader site or GitHub Releases.
+2. Use YomiEpub Studio to convert your local Japanese ebook.
+3. Transfer the generated EPUB to your e-ink reader by Wi-Fi transfer, USB, Syncthing, or another local method.
 4. Set KOReader's root folder to the transfer directory.
 5. Open the converted EPUB in KOReader.
 
+## License
+
+MIT
+
 ## Legal And Ethical Notes
 
-This project is a local format-conversion and reading-accessibility toolkit. It is intended for study, accessibility, and personal reading workflows involving legally obtained files.
+YomiEpub Studio is a local format-conversion and reading-accessibility tool. It is intended for study, accessibility, and personal reading workflows involving legally obtained files.
 
 Do not use this project to distribute copyrighted content, bypass DRM, scrape piracy sites, or automate unauthorized ebook downloads.

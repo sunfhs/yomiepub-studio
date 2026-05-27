@@ -10,4 +10,8 @@ output/
 uploads/
 node_modules/
 app/frontend/dist/
-
+koreader-android-*.apk
+/*.png
+/*.png.png
+/*.jpg
+/*.jpeg
