@@ -215,9 +215,12 @@ INDEX_HTML = """<!doctype html>
       cursor: wait;
     }
     #status {
+      flex: 1 1 360px;
       min-height: 24px;
       color: #39433d;
       font-weight: 600;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
     }
     .progress-wrap {
       display: grid;
@@ -240,6 +243,12 @@ INDEX_HTML = """<!doctype html>
       color: #39433d;
       font-size: 13px;
       font-weight: 700;
+    }
+    .progress-meta span:first-child {
+      overflow-wrap: anywhere;
+    }
+    .progress-meta span:last-child {
+      white-space: nowrap;
     }
     progress {
       width: 100%;
@@ -622,6 +631,7 @@ INDEX_HTML = """<!doctype html>
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+      return filename;
     }
 
     form.addEventListener("submit", async (event) => {
@@ -639,8 +649,9 @@ INDEX_HTML = """<!doctype html>
         const created = await response.json();
         setProgress(created.percent, created.message);
         const job = await waitForJob(created.job_id);
-        await downloadResult(job);
-        status.textContent = "Done. ブラウザの downloads folder を確認してください。";
+        const filename = await downloadResult(job);
+        status.textContent = `Done. Downloaded: ${filename}`;
+        setProgress(100, `Done: ${filename}`);
       } catch (error) {
         status.textContent = error.message || "Conversion failed";
         setProgress(progressBar.value, "Failed");
