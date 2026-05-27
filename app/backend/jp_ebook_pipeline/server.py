@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import time
 import urllib.request
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from threading import Lock
+from uuid import uuid4
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from jp_ebook_pipeline.converter import convert_file
@@ -17,6 +19,8 @@ app = FastAPI(title="YomiEpub Studio")
 
 BING_WALLPAPER_API = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=ja-JP"
 WALLPAPER_CACHE: dict[str, float | str] = {"timestamp": 0.0, "url": ""}
+JOBS: dict[str, dict[str, object]] = {}
+JOBS_LOCK = Lock()
 
 INDEX_HTML = """<!doctype html>
 <html lang="ja">
@@ -214,6 +218,50 @@ INDEX_HTML = """<!doctype html>
       min-height: 24px;
       color: #39433d;
       font-weight: 600;
+    }
+    .progress-wrap {
+      display: grid;
+      gap: 8px;
+      padding: 12px 14px;
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      background: var(--glass-bg);
+      box-shadow: 0 12px 34px rgba(33, 42, 36, 0.09);
+      backdrop-filter: blur(14px) saturate(1.08);
+      -webkit-backdrop-filter: blur(14px) saturate(1.08);
+    }
+    .progress-wrap[hidden] {
+      display: none;
+    }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #39433d;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    progress {
+      width: 100%;
+      height: 12px;
+      overflow: hidden;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(220, 225, 216, 0.82);
+      accent-color: #245b47;
+    }
+    progress::-webkit-progress-bar {
+      border-radius: 999px;
+      background: rgba(220, 225, 216, 0.82);
+    }
+    progress::-webkit-progress-value {
+      border-radius: 999px;
+      background: linear-gradient(90deg, #245b47, #6aa082);
+      transition: width 180ms ease;
+    }
+    progress::-moz-progress-bar {
+      border-radius: 999px;
+      background: linear-gradient(90deg, #245b47, #6aa082);
     }
     .note {
       margin-top: 18px;
@@ -480,6 +528,14 @@ INDEX_HTML = """<!doctype html>
         <span id="status"></span>
       </div>
 
+      <div id="progress-wrap" class="progress-wrap" hidden>
+        <div class="progress-meta">
+          <span id="progress-label">Ready</span>
+          <span id="progress-percent">0%</span>
+        </div>
+        <progress id="progress-bar" max="100" value="0"></progress>
+      </div>
+
       <section class="utility-links" aria-label="Useful external tools">
         <h2>Related Tools</h2>
         <a href="https://app.immersivetranslate.com/ebook/make/?utm_source=extension&utm_medium=extension&utm_campaign=popup_more" target="_blank" rel="noreferrer">
@@ -500,6 +556,10 @@ INDEX_HTML = """<!doctype html>
     const form = document.getElementById("convert-form");
     const status = document.getElementById("status");
     const submit = document.getElementById("submit");
+    const progressWrap = document.getElementById("progress-wrap");
+    const progressBar = document.getElementById("progress-bar");
+    const progressLabel = document.getElementById("progress-label");
+    const progressPercent = document.getElementById("progress-percent");
 
     async function loadWallpaper() {
       try {
@@ -515,10 +575,60 @@ INDEX_HTML = """<!doctype html>
 
     loadWallpaper();
 
+    function setProgress(percent, message) {
+      const value = Math.max(0, Math.min(100, Number(percent) || 0));
+      progressWrap.hidden = false;
+      progressBar.value = value;
+      progressLabel.textContent = message || "Working";
+      progressPercent.textContent = `${value}%`;
+    }
+
+    function sleep(milliseconds) {
+      return new Promise((resolve) => setTimeout(resolve, milliseconds));
+    }
+
+    async function waitForJob(jobId) {
+      while (true) {
+        const response = await fetch(`/progress/${jobId}`);
+        if (!response.ok) {
+          throw new Error("Progress check failed");
+        }
+        const job = await response.json();
+        setProgress(job.percent, job.message);
+        if (job.status === "completed") {
+          return job;
+        }
+        if (job.status === "failed") {
+          throw new Error(job.message || "Conversion failed");
+        }
+        await sleep(500);
+      }
+    }
+
+    async function downloadResult(job) {
+      const response = await fetch(job.download_url);
+      if (!response.ok) {
+        throw new Error("Download failed");
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") || "";
+      const match = disposition.match(/filename\\*?=(?:UTF-8''|")?([^";]+)/i);
+      const filename = match ? decodeURIComponent(match[1].replace(/"/g, "")) : job.filename || "converted.epub";
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = new FormData(form);
-      status.textContent = "Converting...";
+      status.textContent = "Starting...";
+      setProgress(0, "Queued");
       submit.disabled = true;
       try {
         const response = await fetch("/convert", { method: "POST", body: data });
@@ -526,21 +636,14 @@ INDEX_HTML = """<!doctype html>
           const text = await response.text();
           throw new Error(text || "変換に失敗しました");
         }
-        const blob = await response.blob();
-        const disposition = response.headers.get("content-disposition") || "";
-        const match = disposition.match(/filename\\*?=(?:UTF-8''|")?([^";]+)/i);
-        const filename = match ? decodeURIComponent(match[1].replace(/"/g, "")) : "converted.epub";
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+        const created = await response.json();
+        setProgress(created.percent, created.message);
+        const job = await waitForJob(created.job_id);
+        await downloadResult(job);
         status.textContent = "Done. ブラウザの downloads folder を確認してください。";
       } catch (error) {
         status.textContent = error.message || "Conversion failed";
+        setProgress(progressBar.value, "Failed");
       } finally {
         submit.disabled = false;
       }
@@ -561,6 +664,80 @@ def output_filename(filename: str | None) -> str:
         flags=re.IGNORECASE,
     ).strip()
     return f"{cleaned or 'converted'}Yomi.epub"
+
+
+def safe_upload_filename(filename: str | None) -> str:
+    raw = Path(filename or "input.epub").name
+    cleaned = re.sub(r"[\x00-\x1f\x7f/\\:]+", "", raw).strip()
+    return cleaned or "input.epub"
+
+
+def update_job(job_id: str, **updates: object) -> None:
+    updates["updated_at"] = time.time()
+    with JOBS_LOCK:
+        if job_id in JOBS:
+            JOBS[job_id].update(updates)
+
+
+def public_job(job_id: str) -> dict[str, object] | None:
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if not job:
+            return None
+        return {
+            "job_id": job_id,
+            "status": job.get("status", "unknown"),
+            "percent": job.get("percent", 0),
+            "message": job.get("message", ""),
+            "filename": job.get("filename", ""),
+            "download_url": job.get("download_url", f"/download/{job_id}"),
+        }
+
+
+def run_conversion_job(
+    job_id: str,
+    input_path: Path,
+    download_name: str,
+) -> None:
+    stable_output = Path("output") / download_name
+    stable_output.parent.mkdir(exist_ok=True)
+    output_path = input_path.parent / download_name
+
+    def progress(percent: int, message: str) -> None:
+        update_job(
+            job_id,
+            status="running",
+            percent=max(0, min(99, percent)),
+            message=message,
+        )
+
+    options = ConvertOptions(
+        horizontal=True,
+        furigana=True,
+        font_size="1.08em",
+        line_height="1.9",
+    )
+    try:
+        progress(12, "Preparing file")
+        convert_file(input_path, output_path, options, progress=progress)
+        progress(94, "Saving output")
+        stable_output.write_bytes(output_path.read_bytes())
+        update_job(
+            job_id,
+            status="completed",
+            percent=100,
+            message="Done",
+            output_path=str(stable_output),
+        )
+    except Exception as exc:
+        update_job(
+            job_id,
+            status="failed",
+            percent=100,
+            message=f"Conversion failed: {exc}",
+        )
+    finally:
+        shutil.rmtree(input_path.parent, ignore_errors=True)
 
 
 def bing_wallpaper_url() -> str:
@@ -608,6 +785,57 @@ def index() -> str:
 
 @app.post("/convert")
 async def convert_endpoint(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+) -> JSONResponse:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="ファイルを選択してください。")
+
+    job_id = uuid4().hex
+    download_name = output_filename(file.filename)
+    job_dir = Path("output") / ".jobs" / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+    input_path = job_dir / safe_upload_filename(file.filename)
+    input_path.write_bytes(await file.read())
+    with JOBS_LOCK:
+        JOBS[job_id] = {
+            "status": "queued",
+            "percent": 5,
+            "message": "Queued",
+            "filename": download_name,
+            "download_url": f"/download/{job_id}",
+            "created_at": time.time(),
+            "updated_at": time.time(),
+        }
+    background_tasks.add_task(run_conversion_job, job_id, input_path, download_name)
+    return JSONResponse(status_code=202, content=public_job(job_id))
+
+
+@app.get("/progress/{job_id}")
+def conversion_progress(job_id: str) -> JSONResponse:
+    job = public_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return JSONResponse(job)
+
+
+@app.get("/download/{job_id}")
+def download_result(job_id: str) -> FileResponse:
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        if job.get("status") != "completed":
+            raise HTTPException(status_code=409, detail="Conversion is not complete")
+        output_path = Path(str(job.get("output_path", "")))
+        filename = str(job.get("filename", "converted.epub"))
+    if not output_path.exists():
+        raise HTTPException(status_code=404, detail="Output file not found")
+    return FileResponse(output_path, filename=filename)
+
+
+@app.post("/convert-direct")
+async def convert_direct_endpoint(
     file: UploadFile = File(...),
 ) -> FileResponse:
     if not file.filename:
@@ -616,21 +844,23 @@ async def convert_endpoint(
     download_name = output_filename(file.filename)
     stable_output = Path("output") / download_name
     stable_output.parent.mkdir(exist_ok=True)
-
-    options = ConvertOptions(
-        horizontal=True,
-        furigana=True,
-        font_size="1.08em",
-        line_height="1.9",
-    )
     try:
-        with TemporaryDirectory() as tmp:
-            tmpdir = Path(tmp)
-            input_path = tmpdir / file.filename
-            output_path = tmpdir / download_name
+        job_dir = Path("output") / ".direct" / uuid4().hex
+        job_dir.mkdir(parents=True, exist_ok=True)
+        input_path = job_dir / safe_upload_filename(file.filename)
+        output_path = job_dir / download_name
+        try:
             input_path.write_bytes(await file.read())
+            options = ConvertOptions(
+                horizontal=True,
+                furigana=True,
+                font_size="1.08em",
+                line_height="1.9",
+            )
             convert_file(input_path, output_path, options)
             stable_output.write_bytes(output_path.read_bytes())
+        finally:
+            shutil.rmtree(job_dir, ignore_errors=True)
     except NotImplementedError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

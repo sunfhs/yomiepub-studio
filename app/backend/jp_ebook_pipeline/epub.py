@@ -7,12 +7,15 @@ import uuid
 import zipfile
 from html import escape
 from pathlib import Path
+from typing import Callable
 from xml.etree import ElementTree as ET
 
 from bs4 import BeautifulSoup, Tag
 
 from jp_ebook_pipeline.html_tools import normalize_html, text_to_html
 from jp_ebook_pipeline.models import ConvertOptions
+
+ProgressCallback = Callable[[int, str], None]
 
 CONTAINER_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
@@ -85,7 +88,12 @@ def _write_epub_zip(files: dict[str, bytes], output_path: Path) -> None:
             zout.writestr(info, files[name])
 
 
-def convert_epub(input_path: Path, output_path: Path, options: ConvertOptions) -> Path:
+def convert_epub(
+    input_path: Path,
+    output_path: Path,
+    options: ConvertOptions,
+    progress: ProgressCallback | None = None,
+) -> Path:
     with zipfile.ZipFile(input_path, "r") as zin:
         files = {
             name: zin.read(name)
@@ -95,7 +103,9 @@ def convert_epub(input_path: Path, output_path: Path, options: ConvertOptions) -
         opf_path = _rootfile_path(zin)
         html_paths = set(_manifest_html_paths(zin, opf_path))
 
-    for name in html_paths:
+    ordered_html_paths = sorted(html_paths)
+    total = max(len(ordered_html_paths), 1)
+    for index, name in enumerate(ordered_html_paths, start=1):
         if name in files:
             html = files[name].decode("utf-8", errors="ignore")
             if options.horizontal:
@@ -106,10 +116,17 @@ def convert_epub(input_path: Path, output_path: Path, options: ConvertOptions) -
                 title=input_path.stem,
                 include_doctype=False,
             ).encode("utf-8")
+        if progress:
+            percent = 30 + int((index / total) * 48)
+            progress(percent, f"Processing chapter {index}/{total}")
 
     if opf_path in files:
+        if progress:
+            progress(82, "Updating EPUB metadata")
         files[opf_path] = _force_ltr_spine(files[opf_path], options)
 
+    if progress:
+        progress(88, "Packaging EPUB")
     _write_epub_zip(files, output_path)
     return output_path
 
@@ -180,10 +197,17 @@ def _force_ltr_spine(opf_bytes: bytes, options: ConvertOptions) -> bytes:
 
 
 def build_epub_from_text(
-    input_path: Path, output_path: Path, options: ConvertOptions
+    input_path: Path,
+    output_path: Path,
+    options: ConvertOptions,
+    progress: ProgressCallback | None = None,
 ) -> Path:
     title = input_path.stem
+    if progress:
+        progress(42, "Reading text")
     text = input_path.read_text(encoding="utf-8", errors="ignore")
+    if progress:
+        progress(66, "Adding furigana")
     chapter = text_to_html(text, options, title=title).encode("utf-8")
     uid = f"urn:uuid:{uuid.uuid4()}"
     files = {
@@ -192,15 +216,24 @@ def build_epub_from_text(
         "OEBPS/chapter_001.xhtml": chapter,
         "OEBPS/package.opf": _package_opf(title, uid).encode("utf-8"),
     }
+    if progress:
+        progress(88, "Packaging EPUB")
     _write_epub_zip(files, output_path)
     return output_path
 
 
 def build_epub_from_html(
-    input_path: Path, output_path: Path, options: ConvertOptions
+    input_path: Path,
+    output_path: Path,
+    options: ConvertOptions,
+    progress: ProgressCallback | None = None,
 ) -> Path:
     title = input_path.stem
+    if progress:
+        progress(42, "Reading HTML")
     html = input_path.read_text(encoding="utf-8", errors="ignore")
+    if progress:
+        progress(66, "Normalizing HTML")
     chapter = normalize_html(html, options, title=title).encode("utf-8")
     uid = f"urn:uuid:{uuid.uuid4()}"
     files = {
@@ -209,6 +242,8 @@ def build_epub_from_html(
         "OEBPS/chapter_001.xhtml": chapter,
         "OEBPS/package.opf": _package_opf(title, uid).encode("utf-8"),
     }
+    if progress:
+        progress(88, "Packaging EPUB")
     _write_epub_zip(files, output_path)
     return output_path
 

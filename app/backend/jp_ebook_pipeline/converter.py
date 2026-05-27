@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
 from jp_ebook_pipeline.epub import (
     build_epub_from_html,
@@ -10,11 +11,14 @@ from jp_ebook_pipeline.epub import (
 )
 from jp_ebook_pipeline.models import ConvertOptions
 
+ProgressCallback = Callable[[int, str], None]
+
 
 def convert_file(
     input_path: str | Path,
     output_path: str | Path,
     options: ConvertOptions,
+    progress: ProgressCallback | None = None,
 ) -> Path:
     src = Path(input_path)
     dst = Path(output_path)
@@ -26,11 +30,12 @@ def convert_file(
         raise FileNotFoundError(src)
 
     kind = guess_input_kind(src)
+    if progress:
+        progress(24, "Input detected")
     if kind == "epub":
-        return convert_epub(src, dst, options)
+        return convert_epub(src, dst, options, progress=progress)
     if kind == "txt":
-        return build_epub_from_text(src, dst, options)
+        return build_epub_from_text(src, dst, options, progress=progress)
     if kind == "html":
-        return build_epub_from_html(src, dst, options)
+        return build_epub_from_html(src, dst, options, progress=progress)
     raise ValueError(f"Unsupported input type: {src}")
-
