@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jp-ebook-furigana-bilingual-pipeline"
-version = "0.1.0"
+version = "0.1.1"
 description = "Convert local Japanese ebooks into KOReader-friendly horizontal EPUB files with optional furigana."
 readme = "README.md"
 requires-python = ">=3.10"

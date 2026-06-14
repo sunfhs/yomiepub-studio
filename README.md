@@ -51,7 +51,7 @@ KOReader supports Android and common ebook/document formats including EPUB, PDF,
 
 ### Download
 
-- Project release: https://github.com/sunfhs/yomiepub-studio/releases/tag/v0.1.0
+- Project release: https://github.com/sunfhs/yomiepub-studio/releases/latest
 - Source code ZIP: use GitHub's **Code -> Download ZIP** button.
 - Optional KOReader APK convenience attachment is available on the release page. For the latest official KOReader build, prefer the official KOReader links above.
 
