@@ -1,5 +1,19 @@
 # Troubleshooting
 
+## macOS app does not open the browser
+
+Cause: macOS may block a downloaded app on first launch, or the browser may stay in the background.
+
+Fix:
+
+1. Right-click `YomiEpub Studio.app` and choose **Open** the first time.
+2. Wait for the first dependency install to finish. The first launch can take a few minutes.
+3. Open `http://127.0.0.1:8765` manually if the browser does not come forward.
+4. Check logs at `~/Library/Logs/yomiepub-studio-app.log`.
+5. If the app still does not start, use `start_yomiepub.command` as the Terminal fallback.
+
+The macOS app stores its runtime environment in `~/Library/Application Support/YomiEpub Studio/venv`.
+
 ## Built-in reader keeps loading
 
 Cause: the built-in reader may not support EPUB3, ruby tags, strict ZIP packaging, or complex CSS.
@@ -43,4 +57,3 @@ Fix:
 - Make sure `mimetype` is the first ZIP entry and stored without compression.
 - Avoid directory entries before `mimetype`.
 - Keep the EPUB filename simple when testing.
-

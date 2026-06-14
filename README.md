@@ -2,6 +2,10 @@
 
 [简体中文](README.zh-CN.md) | English
 
+<p align="center">
+  <img src="docs/assets/yomiepub-studio-icon.png" alt="YomiEpub Studio app icon" width="112">
+</p>
+
 YomiEpub Studio is a small local web app for turning Japanese EPUB/TXT/HTML files into KOReader-friendly EPUBs with horizontal layout and furigana.
 
 It is designed for people reading Japanese novels on Android-based e-ink readers, especially devices whose built-in reader does not handle vertical Japanese layout, ruby/furigana, or custom EPUB CSS reliably.
@@ -51,29 +55,37 @@ KOReader supports Android and common ebook/document formats including EPUB, PDF,
 - Source code ZIP: use GitHub's **Code -> Download ZIP** button.
 - Optional KOReader APK convenience attachment is available on the release page. For the latest official KOReader build, prefer the official KOReader links above.
 
-### Easiest Way: Double-Click Launcher
+### Easiest Way: macOS App Launcher
 
-Download this project from GitHub as a ZIP, unzip it, then use the launcher in the project folder:
+Download this project from GitHub as a ZIP, unzip it, then double-click:
 
-- macOS: double-click `start_yomiepub.command`
-- Windows: double-click `start_yomiepub.bat`
+- macOS: `YomiEpub Studio.app`
+- Windows: `start_yomiepub.bat`
 
 Prerequisite: install Python 3.10 or newer from https://www.python.org/downloads/ if your computer does not already have Python.
 
-The launcher will:
+The macOS app launcher will:
 
-1. create a local Python environment in `.venv`
-2. install YomiEpub Studio on this computer
-3. start the local web server
+1. create a local Python environment in `~/Library/Application Support/YomiEpub Studio/venv`
+2. install the bundled YomiEpub Studio wheel into that environment
+3. start the local web server in the background
 4. open `http://127.0.0.1:8765` in your browser
 
-Keep the launcher window open while using the web page. Close it, or press `Ctrl+C`, to stop the local server.
+First launch needs an internet connection so Python dependencies can be installed from PyPI. Later launches are faster.
 
-If macOS blocks the launcher because it was downloaded from the Internet:
+If macOS blocks the app because it was downloaded from the Internet:
 
-1. right-click `start_yomiepub.command`
+1. right-click `YomiEpub Studio.app`
 2. choose **Open**
 3. confirm **Open** once
+
+If the browser does not come to the front, open this URL manually:
+
+```text
+http://127.0.0.1:8765
+```
+
+macOS fallback: double-click `start_yomiepub.command`. This opens a Terminal window and keeps the server attached to that window.
 
 ## Web UI Flow
 
@@ -138,7 +150,8 @@ Important options:
 Implemented:
 
 - local FastAPI web UI
-- double-click launchers for macOS and Windows
+- native-style macOS `.app` launcher
+- fallback double-click launchers for macOS and Windows
 - EPUB/TXT/HTML input
 - horizontal layout cleanup
 - furigana insertion with `pykakasi`
@@ -167,6 +180,7 @@ yomiepub-studio/
 ├── samples/
 ├── scripts/
 ├── tests/
+├── YomiEpub Studio.app/
 ├── start_yomiepub.command
 ├── start_yomiepub.bat
 ├── pyproject.toml

@@ -1,0 +1,144 @@
+#!/bin/zsh
+set -u
+setopt null_glob
+
+URL="http://127.0.0.1:8765"
+SERVER_LOG="$HOME/Library/Logs/yomiepub-studio-app.log"
+BROWSER_LOG="$HOME/Library/Logs/yomiepub-browser-open.log"
+APP_SUPPORT="$HOME/Library/Application Support/YomiEpub Studio"
+VENV_DIR="$APP_SUPPORT/venv"
+INSTALL_MARKER="$APP_SUPPORT/install-source.txt"
+
+APP_MACOS_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_CONTENTS_DIR="$(cd "$APP_MACOS_DIR/.." && pwd)"
+RESOURCES_DIR="$APP_CONTENTS_DIR/Resources"
+WHEELS=("$RESOURCES_DIR"/jp_ebook_furigana_bilingual_pipeline-*.whl)
+WHEEL_PATH="${WHEELS[1]:-}"
+
+log() {
+  /bin/mkdir -p "$HOME/Library/Logs"
+  /bin/echo "[$(/bin/date '+%Y-%m-%d %H:%M:%S')] $*" >> "$SERVER_LOG"
+}
+
+show_error() {
+  local message="$1"
+  log "$message"
+  /usr/bin/osascript -e "display dialog \"$message\" buttons {\"OK\"} default button \"OK\" with icon stop" >/dev/null 2>&1 || true
+}
+
+server_is_running() {
+  /usr/sbin/lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1
+}
+
+project_is_valid() {
+  [ -n "$WHEEL_PATH" ] && [ -f "$WHEEL_PATH" ]
+}
+
+ensure_web_binary() {
+  local source_marker
+  source_marker="$(/usr/bin/shasum -a 256 "$WHEEL_PATH" | /usr/bin/awk '{print $1}')"
+
+  if [ -x "$VENV_DIR/bin/jp-ebook-web" ] && [ -f "$INSTALL_MARKER" ] && [ "$(/bin/cat "$INSTALL_MARKER")" = "$source_marker" ]; then
+    return 0
+  fi
+
+  log "Creating or repairing Python environment in $VENV_DIR"
+  /bin/mkdir -p "$APP_SUPPORT"
+
+  if ! /usr/bin/env python3 -m venv "$VENV_DIR" >> "$SERVER_LOG" 2>&1; then
+    return 1
+  fi
+
+  if ! "$VENV_DIR/bin/python" -m pip install --upgrade pip >> "$SERVER_LOG" 2>&1; then
+    return 1
+  fi
+
+  if [ -x "$VENV_DIR/bin/jp-ebook-web" ]; then
+    if ! "$VENV_DIR/bin/python" -m pip install --force-reinstall --no-deps "$WHEEL_PATH" >> "$SERVER_LOG" 2>&1; then
+      return 1
+    fi
+  else
+    if ! "$VENV_DIR/bin/python" -m pip install "$WHEEL_PATH" >> "$SERVER_LOG" 2>&1; then
+      return 1
+    fi
+  fi
+
+  /bin/echo "$source_marker" > "$INSTALL_MARKER"
+}
+
+start_server() {
+  /bin/mkdir -p "$APP_SUPPORT"
+  log "Starting YomiEpub Studio from bundled wheel $WHEEL_PATH"
+  "$VENV_DIR/bin/python" -c '
+import os
+import subprocess
+import sys
+
+app_support = sys.argv[1]
+log_path = sys.argv[2]
+venv_dir = sys.argv[3]
+web_bin = os.path.join(venv_dir, "bin", "jp-ebook-web")
+
+log = open(log_path, "ab", buffering=0)
+subprocess.Popen(
+    [web_bin],
+    cwd=app_support,
+    stdout=log,
+    stderr=subprocess.STDOUT,
+    stdin=subprocess.DEVNULL,
+    close_fds=True,
+    start_new_session=True,
+)
+' "$APP_SUPPORT" "$SERVER_LOG" "$VENV_DIR" >> "$SERVER_LOG" 2>&1
+}
+
+wait_for_server() {
+  local i
+  for i in {1..80}; do
+    if /usr/bin/curl -fsS "$URL/health" >/dev/null 2>&1; then
+      return 0
+    fi
+    /bin/sleep 0.25
+  done
+  return 1
+}
+
+open_browser() {
+  local chrome_bin="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  log "Opening browser at $URL"
+
+  if [ -x "$chrome_bin" ]; then
+    "$chrome_bin" --new-window "$URL" >> "$BROWSER_LOG" 2>&1 &
+    /bin/sleep 0.4
+    /usr/bin/open -a "Google Chrome" >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  /usr/bin/open "$URL" >> "$BROWSER_LOG" 2>&1
+}
+
+main() {
+  if ! project_is_valid; then
+    show_error "YomiEpub Studio.app is missing its bundled Python wheel."
+    return 1
+  fi
+
+  if ! ensure_web_binary; then
+    show_error "YomiEpub Studio could not prepare its Python environment. Check ~/Library/Logs/yomiepub-studio-app.log"
+    return 1
+  fi
+
+  if ! server_is_running; then
+    start_server
+    if ! wait_for_server; then
+      show_error "YomiEpub Studio did not start. Check ~/Library/Logs/yomiepub-studio-app.log"
+      return 1
+    fi
+  else
+    log "Server already running."
+  fi
+
+  open_browser
+}
+
+main "$@"
